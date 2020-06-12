@@ -53,7 +53,7 @@ namespace Channel_Grabber
             using (ShellProgressBar.ProgressBar progressBar = new ShellProgressBar.ProgressBar(playlists.Count, string.Empty, ConsoleColor.Green))
             {
                 using HttpClient client = new HttpClient { Timeout = TimeSpan.FromSeconds(3) };
-                await playlists.ParallelForEachAsync(async playlist =>
+                await playlists.AsParallel().AsOrdered().ParallelForEachAsync(async playlist =>
                 {
                     string[] lines = File.ReadAllLines(playlist);
                     using (ChildProgressBar child = progressBar.Spawn(lines.Length,
