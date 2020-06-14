@@ -26,12 +26,13 @@ namespace Channel_Grabber
     {
         private static bool ContainsStream(string input, string network, string region)
         {
-            if (region != "*")
+            bool basicCheck = input.ContainsIgnoreCase(network);
+            if (region != "*" && basicCheck)
             {
                 RegionInfo regionInfo = new RegionInfo(region);
-                return (input.Contains(regionInfo.TwoLetterISORegionName) || input.Contains(regionInfo.ThreeLetterISORegionName)) && input.ContainsIgnoreCase(network);
+                return input.Contains(regionInfo.TwoLetterISORegionName) || input.Contains(regionInfo.ThreeLetterISORegionName) || input.ContainsIgnoreCase(regionInfo.EnglishName);
             }
-            return input.ContainsIgnoreCase(network);
+            return basicCheck;
         }
 
         [DllImport("kernel32.dll", SetLastError = true)]
@@ -69,7 +70,7 @@ namespace Channel_Grabber
                                     if (!string.IsNullOrEmpty(await client.GetStringAsync(lines[i + 1])))
                                     {
                                         hits += lines[i] + "\n" + lines[i + 1] + "\n";
-                                    } // take the link that should be after the line, test if working and not blank response
+                                    } // take the link that should be after the line, test if working
                                 }
                                 catch (Exception e) when (e is HttpRequestException || e is InvalidOperationException) { } // some links are dumb, this fixes program from breaking from dumb links
                             }
@@ -93,18 +94,13 @@ namespace Channel_Grabber
             string network = ReadLine();
             Console.WriteLine("Type the country code you want to dump (* for all countries)..");
             string region = Console.ReadLine();
-            if (region != "*") // if not * wildcard for region, verifies if region exists
+            if (region != "*" && !CultureInfo.GetCultures(CultureTypes.SpecificCultures)
+                .Select(x => new RegionInfo(x.LCID))
+                .Any(x => x.Name.Equals(region, StringComparison.InvariantCultureIgnoreCase))) // if not * wildcard for region, verifies if region exists
             {
-                try
-                {
-                    RegionInfo regionInfo = new RegionInfo(region);
-                }
-                catch (ArgumentException)
-                {
-                    Console.WriteLine("Invalid region! Exiting...");
-                    Thread.Sleep(3000);
-                    Environment.Exit(0);
-                }
+                Console.WriteLine("Invalid region! Exiting...");
+                Thread.Sleep(3000);
+                Environment.Exit(0);
             }
 
             using (FolderBrowserDialog folderDialog = new FolderBrowserDialog { ShowNewFolderButton = true, Description = "Select a folder with IPTV playlists..." })
@@ -119,7 +115,7 @@ namespace Channel_Grabber
                     string hits = IteratePlaylists(playlists, network, region).Result;
                     if (hits.Length != 0)
                     {
-                        File.CreateText("result\\result.txt").WriteLine(hits);
+                        File.WriteAllText("result\\result.txt", hits);
                     }
                     else
                     {
