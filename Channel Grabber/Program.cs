@@ -79,6 +79,11 @@ namespace Channel_Grabber
                     }
                     progressBar.Tick();
                 }, maxDegreeOfParallelism: Environment.ProcessorCount * 5);
+
+                while(progressBar.CurrentTick < progressBar.MaxTicks)
+                {
+                    progressBar.Tick();
+                } // progress bar percentage correction in case spaghetti
             }
             return hits;
         }
